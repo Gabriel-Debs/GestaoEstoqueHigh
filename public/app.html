@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestEletro - Gestão de Estoque</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+    <!-- Navbar -->
+    <nav class="bg-slate-800 border-b border-slate-700 px-6 py-4 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <i class="fa-solid fa-microchip text-xl"></i>
+                </div>
+                <span class="text-xl font-bold tracking-wide text-white">Gest<span class="text-indigo-400">Eletro</span></span>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="switchTab('produtos')" id="tab-produtos" class="px-4 py-2 rounded-lg font-medium transition bg-indigo-600 text-white">
+                    <i class="fa-solid fa-box mr-2"></i>Produtos
+                </button>
+                <button onclick="switchTab('historico')" id="tab-historico" class="px-4 py-2 rounded-lg font-medium transition bg-slate-700 hover:bg-slate-600 text-slate-300">
+                    <i class="fa-solid fa-clock-rotate-left mr-2"></i>Movimentações
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6 space-y-6">
+
+        <!-- DASHBOARD (CARDS) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Total de Produtos</p>
+                    <h3 id="card-total-produtos" class="text-2xl font-bold text-white mt-1">0</h3>
+                </div>
+                <div class="bg-indigo-500/10 p-3 rounded-lg text-indigo-400">
+                    <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Estoque Crítico</p>
+                    <h3 id="card-estoque-baixo" class="text-2xl font-bold text-amber-400 mt-1">0</h3>
+                </div>
+                <div class="bg-amber-500/10 p-3 rounded-lg text-amber-400">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Total Movimentações</p>
+                    <h3 id="card-total-mov" class="text-2xl font-bold text-emerald-400 mt-1">0</h3>
+                </div>
+                <div class="bg-emerald-500/10 p-3 rounded-lg text-emerald-400">
+                    <i class="fa-solid fa-arrow-right-arrow-left text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO PRODUTOS -->
+        <section id="sec-produtos" class="space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="relative w-full sm:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="input-busca" oninput="filtrarTabela()" placeholder="Buscar por nome, lote..." class="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <button onclick="abrirModalProduto()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Novo Eletrônico
+                </button>
+            </div>
+
+            <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                                <th class="p-4">ID</th>
+                                <th class="p-4">Produto</th>
+                                <th class="p-4">Lote / Categoria</th>
+                                <th class="p-4">Preço</th>
+                                <th class="p-4">Saldo Estoque</th>
+                                <th class="p-4 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-produtos" class="divide-y divide-slate-700/50 text-sm">
+                            <!-- Inserido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO HISTÓRICO DE MOVIMENTAÇÕES -->
+        <section id="sec-historico" class="space-y-4 hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                                <th class="p-4">Data/Hora</th>
+                                <th class="p-4">Produto</th>
+                                <th class="p-4">Tipo</th>
+                                <th class="p-4">Qtd.</th>
+                                <th class="p-4">Saldo Ant. → Novo</th>
+                                <th class="p-4">Observação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-historico" class="divide-y divide-slate-700/50 text-sm">
+                            <!-- Inserido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL DE PRODUTO (CRIAR/EDITAR) -->
+    <div id="modal-produto" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 id="modal-produto-titulo" class="text-lg font-bold text-white">Novo Eletrônico</h3>
+                <button onclick="fecharModal('modal-produto')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="form-produto" onsubmit="salvarProduto(event)" class="space-y-3">
+                <input type="hidden" id="prod-id">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Nome do Produto *</label>
+                    <input type="text" id="prod-nome" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Número de Lote *</label>
+                        <input type="text" id="prod-lote" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Categoria *</label>
+                        <input type="text" id="prod-categoria" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Fabricante *</label>
+                        <input type="text" id="prod-fabricante" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Preço (R$) *</label>
+                        <input type="number" step="0.01" id="prod-preco" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Estoque Mínimo</label>
+                        <input type="number" id="prod-minimo" value="5" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div id="div-estoque-inicial">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Estoque Inicial</label>
+                        <input type="number" id="prod-inicial" value="0" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Descrição</label>
+                    <textarea id="prod-descricao" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-700">
+                    <button type="button" onclick="fecharModal('modal-produto')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 font-medium text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded text-white font-medium text-sm">Salvar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE MOVIMENTAÇÃO -->
+    <div id="modal-movimentacao" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-white">Movimentar Estoque</h3>
+                <button onclick="fecharModal('modal-movimentacao')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="form-movimentacao" onsubmit="salvarMovimentacao(event)" class="space-y-3">
+                <input type="hidden" id="mov-id">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Produto</label>
+                    <input type="text" id="mov-nome" disabled class="w-full bg-slate-900/50 border border-slate-700/50 rounded p-2 text-slate-400 font-semibold outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Tipo de Operação *</label>
+                        <select id="mov-tipo" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                            <option value="ENTRADA">ENTRADA (+)</option>
+                            <option value="SAIDA">SAÍDA (-)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Quantidade *</label>
+                        <input type="number" id="mov-quantidade" min="1" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Observação / Motivo</label>
+                    <input type="text" id="mov-observacao" placeholder="Ex: Venda balcão, reposição..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none">
+                </div>
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-700">
+                    <button type="button" onclick="fecharModal('modal-movimentacao')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 font-medium text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-white font-medium text-sm">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS Principal -->
+    <script>
+        const API_BASE = 'http://localhost/GestEletro/public';
+        let produtosCache = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarProdutos();
+            carregarHistorico();
+        });
+
+        // Alternar abas
+        function switchTab(tab) {
+            const secProd = document.getElementById('sec-produtos');
+            const secHist = document.getElementById('sec-historico');
+            const btnProd = document.getElementById('tab-produtos');
+            const btnHist = document.getElementById('tab-historico');
+
+            if (tab === 'produtos') {
+                secProd.classList.remove('hidden');
+                secHist.classList.add('hidden');
+                btnProd.className = "px-4 py-2 rounded-lg font-medium transition bg-indigo-600 text-white";
+                btnHist.className = "px-4 py-2 rounded-lg font-medium transition bg-slate-700 hover:bg-slate-600 text-slate-300";
+            } else {
+                secProd.classList.add('hidden');
+                secHist.classList.remove('hidden');
+                btnHist.className = "px-4 py-2 rounded-lg font-medium transition bg-indigo-600 text-white";
+                btnProd.className = "px-4 py-2 rounded-lg font-medium transition bg-slate-700 hover:bg-slate-600 text-slate-300";
+                carregarHistorico();
+            }
+        }
+
+        // Carregar Produtos (GET /eletronico)
+        async function carregarProdutos() {
+            try {
+                const res = await fetch(`${API_BASE}/eletronico`);
+                const dados = await res.json();
+                produtosCache = dados;
+                renderizarProdutos(dados);
+                atualizarCards(dados);
+            } catch (e) {
+                Swal.fire('Erro', 'Falha ao carregar lista de produtos', 'error');
+            }
+        }
+
+        // Renderizar Tabela de Produtos
+        function renderizarProdutos(lista) {
+            const tbody = document.getElementById('tbody-produtos');
+            tbody.innerHTML = '';
+
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum produto cadastrado.</td></tr>`;
+                return;
+            }
+
+            lista.forEach(p => {
+                const saldo = parseInt(p.saldo_estoque);
+                const minimo = parseInt(p.estoque_minimo);
+                let badgeEstoque = `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-xs font-semibold">${saldo} un</span>`;
+                
+                if (saldo === 0) {
+                    badgeEstoque = `<span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full text-xs font-semibold">Sem Estoque</span>`;
+                } else if (saldo <= minimo) {
+                    badgeEstoque = `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full text-xs font-semibold">${saldo} un (Baixo)</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/30 transition">
+                        <td class="p-4 text-slate-400 font-mono">#${p.id_eletronico}</td>
+                        <td class="p-4">
+                            <div class="font-semibold text-white">${p.nome}</div>
+                            <div class="text-xs text-slate-400">${p.fabricante}</div>
+                        </td>
+                        <td class="p-4">
+                            <div class="text-slate-300">${p.categoria}</div>
+                            <div class="text-xs text-slate-500 font-mono">${p.numero_lote}</div>
+                        </td>
+                        <td class="p-4 font-medium text-slate-200">R$ ${parseFloat(p.preco).toFixed(2)}</td>
+                        <td class="p-4">${badgeEstoque}</td>
+                        <td class="p-4 text-center space-x-1">
+                            <button onclick="abrirModalMovimentar(${p.id_eletronico}, '${p.nome}')" title="Movimentar Estoque" class="p-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded-lg transition">
+                                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                            </button>
+                            <button onclick="editarProduto(${p.id_eletronico})" title="Editar" class="p-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-lg transition">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deletarProduto(${p.id_eletronico})" title="Excluir" class="p-2 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Atualizar Dashboard
+        function atualizarCards(produtos) {
+            document.getElementById('card-total-produtos').innerText = produtos.length;
+            const baixos = produtos.filter(p => parseInt(p.saldo_estoque) <= parseInt(p.estoque_minimo)).length;
+            document.getElementById('card-estoque-baixo').innerText = baixos;
+        }
+
+        // Filtrar Tabela
+        function filtrarTabela() {
+            const termo = document.getElementById('input-busca').value.toLowerCase();
+            const filtrados = produtosCache.filter(p => 
+                p.nome.toLowerCase().includes(termo) || 
+                p.numero_lote.toLowerCase().includes(termo) ||
+                p.categoria.toLowerCase().includes(termo)
+            );
+            renderizarProdutos(filtrados);
+        }
+
+        // Modais Control
+        function abrirModalProduto() {
+            document.getElementById('form-produto').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('modal-produto-titulo').innerText = 'Novo Eletrônico';
+            document.getElementById('div-estoque-inicial').classList.remove('hidden');
+            document.getElementById('modal-produto').classList.remove('hidden');
+            document.getElementById('modal-produto').classList.add('flex');
+        }
+
+        function fecharModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+
+        function editarProduto(id) {
+            const p = produtosCache.find(item => item.id_eletronico == id);
+            if (!p) return;
+
+            document.getElementById('prod-id').value = p.id_eletronico;
+            document.getElementById('prod-nome').value = p.nome;
+            document.getElementById('prod-lote').value = p.numero_lote;
+            document.getElementById('prod-categoria').value = p.categoria;
+            document.getElementById('prod-fabricante').value = p.fabricante;
+            document.getElementById('prod-preco').value = p.preco;
+            document.getElementById('prod-minimo').value = p.estoque_minimo;
+            document.getElementById('prod-descricao').value = p.descricao || '';
+
+            document.getElementById('modal-produto-titulo').innerText = 'Editar Eletrônico';
+            document.getElementById('div-estoque-inicial').classList.add('hidden');
+            document.getElementById('modal-produto').classList.remove('hidden');
+            document.getElementById('modal-produto').classList.add('flex');
+        }
+
+        // Salvar / Atualizar Produto
+        async function salvarProduto(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+
+            const payload = {
+                nome: document.getElementById('prod-nome').value,
+                numero_lote: document.getElementById('prod-lote').value,
+                categoria: document.getElementById('prod-categoria').value,
+                fabricante: document.getElementById('prod-fabricante').value,
+                preco: parseFloat(document.getElementById('prod-preco').value),
+                estoque_minimo: parseInt(document.getElementById('prod-minimo').value),
+                descricao: document.getElementById('prod-descricao').value
+            };
+
+            let method = 'POST';
+            if (id) {
+                method = 'PUT';
+                payload.id_eletronico = parseInt(id);
+            } else {
+                payload.estoque_inicial = parseInt(document.getElementById('prod-inicial').value);
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/eletronico`, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    fecharModal('modal-produto');
+                    carregarProdutos();
+                    Swal.fire('Sucesso!', data.mensagem, 'success');
+                } else {
+                    Swal.fire('Atenção', data.erro || 'Erro ao processar requisição', 'warning');
+                }
+            } catch (err) {
+                Swal.fire('Erro', 'Falha de comunicação com o servidor', 'error');
+            }
+        }
+
+        // Deletar Produto (DELETE /eletronico?id=X)
+        async function deletarProduto(id) {
+            const confirmacao = await Swal.fire({
+                title: 'Tem certeza?',
+                text: "Esta ação apagará o produto permanentemente do banco de dados!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmColor: '#e11d48',
+                cancelColor: '#475569',
+                confirmButtonText: 'Sim, excluir!'
+            });
+
+            if (confirmacao.isConfirmed) {
+                try {
+                    const res = await fetch(`${API_BASE}/eletronico?id=${id}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (res.ok) {
+                        carregarProdutos();
+                        Swal.fire('Excluído!', data.mensagem, 'success');
+                    } else {
+                        Swal.fire('Erro', data.erro, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Erro', 'Falha ao excluir produto', 'error');
+                }
+            }
+        }
+
+        // Abrir Modal Movimentação
+        function abrirModalMovimentar(id, nome) {
+            document.getElementById('form-movimentacao').reset();
+            document.getElementById('mov-id').value = id;
+            document.getElementById('mov-nome').value = nome;
+            document.getElementById('modal-movimentacao').classList.remove('hidden');
+            document.getElementById('modal-movimentacao').classList.add('flex');
+        }
+
+        // Salvar Movimentação (PUT /estoque)
+        async function salvarMovimentacao(e) {
+            e.preventDefault();
+            const payload = {
+                id_eletronico: parseInt(document.getElementById('mov-id').value),
+                tipo: document.getElementById('mov-tipo').value,
+                quantidade: parseInt(document.getElementById('mov-quantidade').value),
+                observacao: document.getElementById('mov-observacao').value
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/estoque`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    fecharModal('modal-movimentacao');
+                    carregarProdutos();
+                    Swal.fire('Sucesso!', data.mensagem, 'success');
+                } else {
+                    Swal.fire('Atenção', data.erro, 'warning');
+                }
+            } catch (err) {
+                Swal.fire('Erro', 'Falha de comunicação', 'error');
+            }
+        }
+
+        // Carregar Histórico (GET /movimentacoes)
+        async function carregarHistorico() {
+            try {
+                const res = await fetch(`${API_BASE}/movimentacoes`);
+                const dados = await res.json();
+                
+                document.getElementById('card-total-mov').innerText = dados.length;
+
+                const tbody = document.getElementById('tbody-historico');
+                tbody.innerHTML = '';
+
+                if (dados.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhuma movimentação registrada.</td></tr>`;
+                    return;
+                }
+
+                dados.forEach(m => {
+                    const dataFmt = new Date(m.data_movimentacao).toLocaleString('pt-BR');
+                    const isEntrada = m.tipo === 'ENTRADA';
+                    const badgeTipo = isEntrada 
+                        ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-bold">ENTRADA</span>`
+                        : `<span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded text-xs font-bold">SAÍDA</span>`;
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-700/30 transition">
+                            <td class="p-4 text-slate-400 text-xs">${dataFmt}</td>
+                            <td class="p-4 font-semibold text-white">${m.produto}</td>
+                            <td class="p-4">${badgeTipo}</td>
+                            <td class="p-4 font-mono font-bold ${isEntrada ? 'text-emerald-400' : 'text-rose-400'}">${isEntrada ? '+' : '-'}${m.quantidade}</td>
+                            <td class="p-4 text-slate-300 font-mono text-xs">${m.saldo_anterior} → <span class="font-bold text-white">${m.saldo_posterior}</span></td>
+                            <td class="p-4 text-slate-400 text-xs">${m.observacao || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error("Erro ao carregar histórico", e);
+            }
+        }
+    </script>
+</body>
+</html>
